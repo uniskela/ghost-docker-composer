@@ -1,0 +1,21 @@
+version: '3.1'
+services:
+  ghost:
+    image: ghost:test
+    volumes:
+      - ghost_content:/var/lib/ghost/content
+    secrets:
+      - mail_from
+      - mail_options_service
+      - mail_options_host
+      - mail_options_auth_user
+      - mail_options_auth_pass
+      - mail_options_port
+      - database__connection__host
+      - database__connection__user
+      - database__connection__password
+      - database__connection__database
+      - database__connection__port
+      - url
+volumes:
+  ghost_content:
