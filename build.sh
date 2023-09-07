@@ -18,24 +18,46 @@ prompt_and_confirm() {
     result=$var
 }
 
-# Function to create a Docker secret
+# Function to create a Docker secret and update docker-compose.yml
 create_secret() {
+    local secret_name=$1
     # Check if the secret already exists
-    if [ $(docker secret ls -f name=$1 -q) ]; then
-        # If it does, remove it
-        echo "Removing existing Docker secret: $1"
-        docker secret rm $1
+    if [[ $(docker secret ls -f name=$secret_name -q) ]]; then
+        # If it does, ask the user what they want to do
+        echo "A Docker secret with the name $secret_name already exists."
+        echo "What would you like to do?"
+        echo "1. Remove the old secret and create a new one"
+        echo "2. Keep the old secret"
+        echo "3. Select a different name for the new secret"
+        read -p "Please enter the number of your choice: " choice
+        
+        case $choice in
+            1)
+                # Remove the old secret and create a new one
+                echo "Removing existing Docker secret: $secret_name"
+                docker secret rm $secret_name
+                ;;
+            2)
+                # Keep the old secret
+                echo "Keeping existing Docker secret: $secret_name"
+                return
+                ;;
+            3)
+                # Select a different name for the new secret
+                read -p "Please enter a new name for the Docker secret: " secret_name
+                ;;
+            *)
+                echo "Invalid choice. Please run the script again."
+                exit 1
+                ;;
+        esac
     fi
     # Create the secret
-    echo "Creating new Docker secret: $1"
-    echo $2 | docker secret create $1 -
+    echo "Creating new Docker secret: $secret_name"
+    echo $2 | docker secret create $secret_name -
+    # Update docker-compose.yml with the secret name
+    sed -i "/secrets:/a \      - $secret_name" docker-compose.yml
 }
-
-# Warning about Docker secrets removal
-echo "WARNING: This script will remove existing Docker secrets and create new ones. If you have important Docker secrets, please back them up before running this script."
-
-
-
 
 # Check if user has Docker permissions
 if ! docker info >/dev/null 2>&1; then
@@ -52,18 +74,22 @@ fi
 # Display network interfaces and IP addresses
 ip a
 
-# Warning about Docker secrets removal
-echo "WARNING: This script will remove existing Docker secrets and create new ones. If you have important Docker secrets, please back them up before running this script."
-
 # Prompt user for IP address
 read -p "Please enter an IP address for Docker Swarm to advertise: " ip_addr
 
 # Initialize Docker Swarm with user-specified IP address
+echo "----------------------------------------------------"
+echo "Attempting to init Docker Swarm"
+sleep 3
+echo "Below is the Docker response:"
 docker swarm init --advertise-addr $ip_addr
+echo "----------------------------------------------------"
 
 # Welcome message
+echo "----------------------------------------------------"
 echo "Welcome to the Ghost blog Production Image Builder!"
 echo "Built by Uniskela for https://uniskela.space"
+echo "----------------------------------------------------"
 sleep 2
 
 # Prompt for Ghost Image Version
@@ -146,7 +172,7 @@ sleep 3 &
 PID=$!
 i=1
 sp="/-\|"
-echo -n 'Checking if Port 2368 is open'
+echo -n 'Checking if Port 2368 is open. '
 while [ -d /proc/$PID ]
 do
   printf "\b${sp:i++%${#sp}:1}"
@@ -165,9 +191,17 @@ fi
 # Deploy Docker stack
 docker stack deploy -c docker-compose.yml ghost_stack
 
+# Wait for a few seconds to let the stack start
+sleep 5
+
 # Check if containers are running
-if [ "$(docker service ls -f name=ghost_stack_ghost)" ]; then
+service_state=$(docker service ps --format '{{.CurrentState}}' ghost_stack_ghost)
+
+if [[ $service_state == *"Running"* ]]; then
     echo "Containers are running successfully!"
 else
-    echo "Something went wrong. Please check the Docker logs for more information."
+    echo "Something went wrong. The service is not running."
+    echo "Service state: $service_state"
+    echo "Please check the Docker logs for more information."
+    echo "Use the command: docker service logs ghost_stack_ghost"
 fi
