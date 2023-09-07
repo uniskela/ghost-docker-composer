@@ -52,6 +52,9 @@ fi
 # Display network interfaces and IP addresses
 ip a
 
+# Warning about Docker secrets removal
+echo "WARNING: This script will remove existing Docker secrets and create new ones. If you have important Docker secrets, please back them up before running this script."
+
 # Prompt user for IP address
 read -p "Please enter an IP address for Docker Swarm to advertise: " ip_addr
 
@@ -64,9 +67,10 @@ echo "Built by Uniskela for https://uniskela.space"
 sleep 2
 
 # Prompt for Ghost Image Version
-prompt_and_confirm "Ghost Image Version"
+echo "----------------------------------------------------"
 echo "Refer to https://hub.docker.com/_/ghost/tags"
-create_secret "ghost_version" $result
+echo "----------------------------------------------------"
+prompt_and_confirm "Ghost Image Version"
 
 # Replace the entire line 4 with the new image line
 sed -i "4c\    image: ghost:$ghost_version" ./docker-compose.yml
