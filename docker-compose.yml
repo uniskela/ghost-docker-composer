@@ -1,7 +1,9 @@
 version: '3.1'
 services:
   ghost:
-    image: ghost:5
+    image: ghost:
+    environment:
+      - NODE_ENV=production
     volumes:
       - ghost_content:/var/lib/ghost/content
     secrets:

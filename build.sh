@@ -18,6 +18,8 @@ prompt_and_confirm() {
     result=$var
 }
 
+
+
 # Function to create a Docker secret and update docker-compose.yml
 create_secret() {
     local secret_name=$1
@@ -79,7 +81,7 @@ read -p "Please enter an IP address for Docker Swarm to advertise: " ip_addr
 
 # Initialize Docker Swarm with user-specified IP address
 echo "----------------------------------------------------"
-echo "Attempting to init Docker Swarm"
+echo "Attempting to init Docker Swarm..."
 sleep 3
 echo "Below is the Docker response:"
 docker swarm init --advertise-addr $ip_addr
@@ -99,7 +101,9 @@ echo "----------------------------------------------------"
 prompt_and_confirm "Ghost Image Version"
 
 # Replace the entire line 4 with the new image line
-sed -i "4c\    image: ghost:$ghost_version" ./docker-compose.yml
+sed -i "4c\    image: ghost:$result" ./docker-compose.yml
+
+
 
 # Prompt for Ghost Website URL and create Docker secret
 prompt_and_confirm "Ghost Website URL"
