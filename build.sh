@@ -21,13 +21,19 @@ prompt_and_confirm() {
 # Function to create a Docker secret
 create_secret() {
     # Check if the secret already exists
-    if echo $(docker secret ls -f name=$1 -q); then
+    if [ $(docker secret ls -f name=$1 -q) ]; then
         # If it does, remove it
+        echo "Removing existing Docker secret: $1"
         docker secret rm $1
     fi
     # Create the secret
+    echo "Creating new Docker secret: $1"
     echo $2 | docker secret create $1 -
 }
+
+# Warning about Docker secrets removal
+echo "WARNING: This script will remove existing Docker secrets and create new ones. If you have important Docker secrets, please back them up before running this script."
+
 
 
 
@@ -57,15 +63,18 @@ echo "Welcome to the Ghost blog Production Image Builder!"
 echo "Built by Uniskela for https://uniskela.space"
 sleep 2
 
+# Prompt for Ghost Image Version
 prompt_and_confirm "Ghost Image Version"
 echo "Refer to https://hub.docker.com/_/ghost/tags"
-ghost_version=$result
+create_secret "ghost_version" $result
 
 # Replace the entire line 4 with the new image line
 sed -i "4c\    image: ghost:$ghost_version" ./docker-compose.yml
 
+# Prompt for Ghost Website URL and create Docker secret
 prompt_and_confirm "Ghost Website URL"
-echo $result | docker secret create database__connection__host -
+create_secret "database__connection__host" $result
+
 
 # Prompt for External MySQL configuration
 echo "----------------------------------------------------"
@@ -76,15 +85,15 @@ sleep 2
 
 # Prompt for ext. MySQL configuration and create Docker secrets
 prompt_and_confirm "Database Connection Hostname"
-echo $result | docker secret create database__connection__host -
+create_secret "database__connection__host" $result
 prompt_and_confirm "Database Connection Username"
-echo $result | docker secret create database__connection__user -
+create_secret "database__connection__user" $result
 prompt_and_confirm "Database Connection DB Name"
-echo $result | docker secret create database__connection__database -
+create_secret "database__connection__database" $result
 prompt_and_confirm "Database Connection Password"
-echo $result | docker secret create database__connection__password -
+create_secret "database__connection__password" $result
 prompt_and_confirm "Database Connection Port"
-echo $result | docker secret create database__connection__port -
+create_secret "database__connection__port" $result
 
 
 # Prompt for SMTP configuration
@@ -94,9 +103,9 @@ echo "----------------------------------------------------"
 sleep 2
 # Prompt for SMTP configuration and create Docker secrets
 prompt_and_confirm "Email From Address"
-echo $result | docker secret create mail_from -
+create_secret "mail_from" $result
 prompt_and_confirm "Email SMTP host"
-echo $result | docker secret create mail_options_host -
+create_secret "mail_options_host" $result
 
 
 # Prompt for secure connection
@@ -110,15 +119,14 @@ fi
 
 # Prompt for SMTP user and password
 prompt_and_confirm "Email SMTP user"
-echo $result | docker secret create mail_options_auth_user -
+create_secret "mail_options_auth_user" $result
 prompt_and_confirm "Email SMTP password"
-echo $result | docker secret create mail_options_auth_pass -
-
-
+create_secret "mail_options_auth_pass" $result
 
 # Prompt for SMTP port
 prompt_and_confirm "Which SMTP Port"
-echo $result | docker secret create mail_options_port -
+create_secret "mail_options_port" $result
+
 
 
 # Check if netstat is installed
