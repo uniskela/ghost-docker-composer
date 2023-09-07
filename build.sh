@@ -43,9 +43,14 @@ if ! docker info >/dev/null 2>&1; then
     exit 1
 fi
 
-# Initialize Docker Swarm if not already initialized
-docker swarm init
+# Display network interfaces and IP addresses
+ip a
 
+# Prompt user for IP address
+read -p "Please enter an IP address for Docker Swarm to advertise: " ip_addr
+
+# Initialize Docker Swarm with user-specified IP address
+docker swarm init --advertise-addr $ip_addr
 
 # Welcome message
 echo "Welcome to the Ghost blog Production Image Builder!"
