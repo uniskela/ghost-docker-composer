@@ -18,11 +18,6 @@ prompt_and_confirm() {
     result=$var
 }
 
-# Function to generate a random string
-generate_random_string() {
-    cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w ${1:-32} | head -n 1
-}
-
 # Function to create a Docker secret
 create_secret() {
     # Check if the secret already exists
