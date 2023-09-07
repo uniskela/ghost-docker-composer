@@ -1,9 +1,11 @@
 version: '3.1'
 services:
   ghost:
-    image: ghost:
+    image: ghost:5
     environment:
       - NODE_ENV=production
+      - mail__transport=SMTP
+      - mail__options__service=SMTP
     volumes:
       - ghost_content:/var/lib/ghost/content
     secrets:

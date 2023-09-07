@@ -145,17 +145,17 @@ create_secret "mail_options_host" $result
 # Prompt for secure connection
 echo "Does your SMTP use secure connection? (y/n)"
 read mail__options__secure
-if [ "$mail__options__secure" == "y" ]; then
-    echo "true" | docker secret create mail_options_secure -
-else
-    echo "false" | docker secret create mail_options_secure -
-fi
 
-# Prompt for SMTP user and password
-prompt_and_confirm "Email SMTP user"
-create_secret "mail_options_auth_user" $result
-prompt_and_confirm "Email SMTP password"
-create_secret "mail_options_auth_pass" $result
+# Prompt for SMTP user and password only if secure connection is used
+if [ "$mail__options__secure" == "y" ]; then
+    echo "Please enter your Email SMTP user (secure connection):"
+    prompt_and_confirm
+    create_secret "mail_options_auth_user" $result
+
+    echo "Please enter your Email SMTP password (secure connection):"
+    prompt_and_confirm
+    create_secret "mail_options_auth_pass" $result
+fi
 
 # Prompt for SMTP port
 prompt_and_confirm "Which SMTP Port"
