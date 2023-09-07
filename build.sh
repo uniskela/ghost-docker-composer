@@ -29,8 +29,23 @@ create_secret() {
     echo $2 | docker secret create $1 -
 }
 
+
+
+# Check if user has Docker permissions
+if ! docker info >/dev/null 2>&1; then
+    echo "You do not have sufficient Docker permissions."
+    echo "Attempting to add user to Docker group..."
+    
+    # Attempt to add user to Docker group
+    sudo usermod -aG docker $USER
+    
+    echo "You may need to log out and log back in to apply these changes."
+    exit 1
+fi
+
 # Initialize Docker Swarm if not already initialized
 docker swarm init
+
 
 # Welcome message
 echo "Welcome to the Ghost blog Production Image Builder!"
