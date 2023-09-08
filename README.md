@@ -18,7 +18,7 @@ This project was made to allow myself to migrate and create production Ghost doc
 ## Prerequisites
 
 - This script is optimised for **_Ubuntu 22.04 LTS_**
-- [Docker](https://docs.docker.com/engine/install/ubuntu/) and [Docker Compose](https://docs.docker.com/compose/install/linux/#install-using-the-repository) installed on your machine.
+- [Docker](https://docs.docker.com/engine/install/ubuntu/#installation-methods) and [Docker Compose](https://docs.docker.com/compose/install/linux/#install-using-the-repository) installed on your machine.
 - Shell access to the machine where Docker is running.
 - [net-tools](https://packages.ubuntu.com/jammy/net-tools) (or the script will try to install via sudo apt)
 - External MySQL Database is optional, or run an Internal MySQL database in stack
@@ -26,9 +26,10 @@ This project was made to allow myself to migrate and create production Ghost doc
 ## Getting Started
 
 1. Clone this repository to your SSH terminal using `git clone https://github.com/uniskela/ghost-docker-composer.git ghost && cd ghost`.
-2. You may need to do `sudo chmod +x ./build.sh` then run the build script with `./build.sh`. 
-3. This will guide you through the setup process, asking for necessary inputs along the way. The script will check for Docker permissions, create necessary environment variables, and compose the Docker stack.
-4. Wait for the script to finish executing. It will check if the Docker stack has deployed and if the services are running successfully.
+2. Ensure Docker commands have sudo. Otherwise the script will check for you.
+3. You may need to do `sudo chmod +x ./build.sh` then run the build script with `./build.sh`. 
+4. This will guide you through the setup process, asking for necessary inputs along the way. The script will check for Docker permissions, create necessary environment variables, and compose the Docker stack.
+5. Wait for the script to finish executing. It will check if the Docker stack has deployed and if the services are running successfully.
 
 ## Usage
 
