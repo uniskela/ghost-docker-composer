@@ -1,228 +1,175 @@
 #!/bin/bash
+clear
+# Remove the existing docker-compose.yml file
+echo "----------------------------------------------------"
+echo "Removing existing docker-compose.yml file..."
+rm -f ./docker-compose.yml
+sleep 1
 
+# Copy the template to create a new docker-compose.yml file
+echo "Creating a new docker-compose.yml file from template..."
+cp ./docker-compose-template.yml ./docker-compose.yml
+sleep 1
+
+echo "Done! Your docker-compose.yml file has been refreshed."
+echo "----------------------------------------------------"
+sleep 3
+clear
 # Function to prompt for user input and confirm
 prompt_and_confirm() {
     local prompt_string=$1
-    local secret_name=$2
+    local env_var_name=$2
+
+    # Check if the environment variable is already set
+    if [ ! -z "${!env_var_name}" ]; then
+        echo "----------------------------------------------------"
+        echo "The environment variable $env_var_name is already set to ${!env_var_name}."
+        echo "Would you like to keep this value? (y/n, or press Enter to confirm)"
+        read confirm
+        if [ "$confirm" == "y" ] || [ -z "$confirm" ]; then
+            return
+            clear
+            echo "----------------------------------------------------"
+            echo "$env_var_name set successfully!"
+            echo "----------------------------------------------------"
+            sleep 3
+            clear
+        fi
+    fi
 
     while true; do
-        echo "Please enter your $prompt_string (or press Enter to use the existing secret, if available):"
+        echo "----------------------------------------------------" 
+        echo "Please enter your $prompt_string:"
         read var
 
-        # If the user pressed Enter, check if a secret exists
-        if [ -z "$var" ]; then
-            if [[ $(docker secret ls -f name=$secret_name -q) ]]; then
-                # If a secret exists, use it
-                echo "Using existing Docker secret: $secret_name"
-                result=$(docker secret inspect -f '{{.Spec.Name}}' $secret_name)
-                break
-            else
-                # If no secret exists, warn the user and ask for the input again
-                echo "Warning: No existing Docker secret found for $secret_name. Please enter a value."
-                continue
-            fi
-        fi
-
+        echo "----------------------------------------------------"
         echo "You entered: $var"
         echo "Is this correct? (y/n, or press Enter to confirm)"
         read confirm
         if [ "$confirm" == "y" ] || [ -z "$confirm" ]; then
-            result=$var
+            export $env_var_name=$var
             break
+            clear
+            echo "----------------------------------------------------"
+            echo "$env_var_name set successfully!"
+            echo "----------------------------------------------------"
+            sleep 3
+            clear
         fi
+                clear
+            echo "----------------------------------------------------"
+            echo "$env_var_name set successfully!"
+            echo "----------------------------------------------------"
+            sleep 3
+            clear
     done
 }
 
 
 
 
-
-# Function to create a Docker secret and update docker-compose.yml
-create_secret() {
-    local secret_name=$1
-    local secret_value=$2
-
-    # If the user has chosen to use the existing secret, skip the three options
-    if [[ "$secret_value" == "$secret_name" ]]; then
-        echo "Using existing Docker secret: $secret_name"
-        return
-    fi
-
-    # Check if the secret already exists
-    if [[ $(docker secret ls -f name=$secret_name -q) ]]; then
-        # If it does, ask the user what they want to do
-        echo "Docker Secret already exists."
-        echo "What would you like to do?"
-        echo "1. Use New One"
-        echo "2. Keep the old secret"
-        echo "3. New secret name"
-        read -p "Please enter the number of your choice: " choice
-        
-        case $choice in
-            1)
-                # Remove the old secret and create a new one
-                echo "Removing existing Docker secret: $secret_name"
-                docker secret rm $secret_name
-                ;;
-            2)
-                # Keep the old secret
-                echo "Keeping existing Docker secret: $secret_name"
-                return
-                ;;
-            3)
-                # Select a different name for the new secret
-                read -p "Please enter a new name for the Docker secret: " secret_name
-                ;;
-            *)
-                echo "Invalid choice. Please run the script again."
-                exit 1
-                ;;
-        esac
-    fi
-    # Create the secret
-    echo "Creating new Docker secret: $secret_name"
-    echo $secret_value | docker secret create $secret_name -
-    # Update docker-compose.yml with the secret name
-    sed -i "/secrets:/a \      - $secret_name" docker-compose.yml
-}
-
-
 # Check if user has Docker permissions
+echo "----------------------------------------------------"
+echo "Checking Docker permissions...."
+sleep 2
 if ! docker info >/dev/null 2>&1; then
     echo "You do not have sufficient Docker permissions."
     echo "Attempting to add user to Docker group..."
+    sleep 1
     
     # Attempt to add user to Docker group
     sudo usermod -aG docker $USER
     
     echo "You may need to log out and log back in to apply these changes."
+    sleep 3
     exit 1
 fi
+echo "Done! Continuing on..."
+echo "----------------------------------------------------"
+sleep 3
 
-# Display network interfaces and IP addresses
-ip a
-
-# Function to validate IP addresses
-validate_ip() {
-    local ip=$1
-    local valid=1
-
-    IFS='.' read -ra addr <<< "$ip"
-    [[ ${#addr[@]} -eq 4 ]] || valid=0
-    for i in "${addr[@]}"; do
-        [[ $i -ge 0 && $i -le 255 ]] || valid=0
-    done
-
-    echo "$valid"
-}
-
-# Prompt user for IP address
-while true; do
-    read -p "Please enter an IP address for Docker Swarm to advertise: " ip_addr
-    if [[ $(validate_ip $ip_addr) -eq 1 ]]; then
-        break
-    else
-        echo "Invalid IP address. Please enter a valid IP address."
-    fi
-done
-
-# Initialize Docker Swarm with user-specified IP address
-echo "Attempting to init Docker Swarm..."
-docker_swarm_init_output=$(docker swarm init --advertise-addr $ip_addr)
-if [[ $docker_swarm_init_output == *"Error response from daemon"* ]]; then
-    echo "Error: Failed to initialize Docker Swarm."
-    echo "Docker response: $docker_swarm_init_output"
-    exit 1
-else
-    echo "Docker Swarm initialized successfully!"
-fi
 
 clear
 # Welcome message
 clear
 echo "----------------------------------------------------"
-echo "Welcome to the Ghost blog Swarm Builder!"
-echo "Built by Uniskela for https://uniskela.space"
+echo "Welcome to the Ghost blog Docker composer!"
+echo "Built by Uniskela at https://github.com/uniskela/ghost-docker-composer"
 echo "----------------------------------------------------"
-sleep 3
-# Initialize Docker Swarm with user-specified IP address
-echo "----------------------------------------------------"
-echo "Attempting to init Docker Swarm..."
-sleep 3
-echo "Below is the Docker response:"
-docker swarm init --advertise-addr $ip_addr
-# Prompt for secure connection
-echo "Continuing in 10 seconds, would you like cancel? (y/n)"
-read continue_on
-# Prompt for SMTP user and password only if secure connection is used
-if [ "$continue_on" == "y" ]; then
-    echo "Are you sure you want to cancel? (y/n)"
-    read you_sure
-        if [ "$you_sure" == "y" ]; then
-        exit 1
-        fi
-fi
-echo "Continuing on shortly...."
-echo "----------------------------------------------------"
+sleep 5
 
-sleep 10
 
 clear
-
 # Prompt for Ghost Image Version
-echo "----------------------------------------------------"
-echo "Refer to https://hub.docker.com/_/ghost/tags"
-echo "----------------------------------------------------"
-prompt_and_confirm "Ghost Image Version"
+echo "## Refer to https://hub.docker.com/_/ghost/tags"
+prompt_and_confirm "Ghost Image Version" "GHOST_IMAGE_VERSION"
 
 # Replace the entire line 4 with the new image line
-sed -i "4c\    image: ghost:$result" ./docker-compose.yml
-
+sed -i "5c\    image: ghost:${GHOST_IMAGE_VERSION}" ./docker-compose.yml
+   clear
+    echo "----------------------------------------------------"
+    echo "Ghost Image Version set successfully!"
+    echo "----------------------------------------------------"
+    sleep 3
+    clear
 
 
 # Prompt for Ghost Website URL and create Docker secret
 prompt_and_confirm "Ghost Website URL" "database__connection__host"
-create_secret "database__connection__host" $result
-sleep 2
-clear
 
-# Prompt for External MySQL configuration
+   clear
+    echo "----------------------------------------------------"
+    echo "Ghost Website URL set successfully!"
+    echo "----------------------------------------------------"
+    sleep 3
+    clear
+
+# Prompt for MySQL configuration type
 echo "----------------------------------------------------"
-echo "External MySQL Configuration"
+echo "MySQL Configuration"
 echo "----------------------------------------------------"
-sleep 2
+echo "Please choose the type of MySQL configuration:"
+echo "1. Internal"
+echo "2. External"
+read -p "Enter your choice (1 or 2): " choice
+
+if [[ "$choice" == "1" ]]; then
+    # Uncomment MySQL service and volume in docker-compose.yml using sed
+    sed -i '/#  mysql:/,/  mysql_data:/ { s/^#  // }' ./docker-compose.yml
+fi
 
 
-# Prompt for ext. MySQL configuration and create Docker secrets
-prompt_and_confirm "Database Connection Hostname" "database__connection__host"
-create_secret "database__connection__host" $result
-
-sleep 2
-clear
-
-prompt_and_confirm "Database Connection Username" "database__connection__user"
-create_secret "database__connection__user" $result 
-
-sleep 2
-clear
-
-prompt_and_confirm "Database Connection DB Name" "database__connection__database"
-create_secret "database__connection__database" $result
-
-sleep 2
-clear
-
-prompt_and_confirm "Database Connection Password" "database__connection__password"
-create_secret "database__connection__password" $result
-
-sleep 2
-clear
-
-prompt_and_confirm "Database Connection Port" "database__connection__port"
-create_secret "database__connection__port" $result
-
-sleep 2
-clear
+    # Prompt for internal MySQL configuration
+    echo "----------------------------------------------------"
+    echo "Internal MySQL Configuration"
+    echo "----------------------------------------------------"
+    prompt_and_confirm "MySQL Root Password" "MYSQL_ROOT_PASSWORD"
+    prompt_and_confirm "MySQL Database" "MYSQL_DATABASE"
+    # Record the database name for the ghost database connection
+    export DATABASE_CONNECTION_DATABASE=$MYSQL_DATABASE
+    prompt_and_confirm "MySQL User" "MYSQL_USER"
+    # Record the user for the ghost database connection
+    export DATABASE_CONNECTION_USER=$MYSQL_USER
+    prompt_and_confirm "MySQL Password" "MYSQL_PASSWORD"
+    # Record the password for the ghost database connection
+    export DATABASE_CONNECTION_PASSWORD=$MYSQL_PASSWORD
+    # Set the hostname and port for the ghost database connection
+    export DATABASE_CONNECTION_HOST="mysql"
+    export DATABASE_CONNECTION_PORT="3306"
+elif [[ "$choice" == "2" ]]; then
+    # Prompt for external MySQL configuration
+    echo "----------------------------------------------------"
+    echo "External MySQL Configuration"
+    echo "----------------------------------------------------"
+    prompt_and_confirm "Database Connection Hostname" "DATABASE_CONNECTION_HOST"
+    prompt_and_confirm "Database Connection Username" "DATABASE_CONNECTION_USER"
+    prompt_and_confirm "Database Connection DB Name" "DATABASE_CONNECTION_DATABASE"
+    prompt_and_confirm "Database Connection Password" "DATABASE_CONNECTION_PASSWORD"
+    prompt_and_confirm "Database Connection Port" "DATABASE_CONNECTION_PORT"
+else
+    echo "Invalid choice. Please enter 1 for Internal or 2 for External."
+    exit 1
+fi
 
 # Prompt for SMTP configuration
 echo "----------------------------------------------------"
@@ -231,13 +178,11 @@ echo "----------------------------------------------------"
 sleep 2
 # Prompt for SMTP configuration and create Docker secrets
 prompt_and_confirm "Email From Address" "mail_from"
-create_secret "mail_from" $result
 
 sleep 2
 clear
 
 prompt_and_confirm "Email SMTP host" "mail_options_host"
-create_secret "mail_options_host" $result
 
 sleep 2
 clear
@@ -255,14 +200,9 @@ done
 # If secure connection is used, prompt for SMTP user and password and create Docker secrets
 if [ "$mail__options__secure" == "y" ]; then
     prompt_and_confirm "Email SMTP user" "mail_options_auth_user"
-    create_secret "mail_options_auth_user" $result
 
     prompt_and_confirm "Email SMTP password" "mail_options_auth_pass"
-    create_secret "mail_options_auth_pass" $result
 fi
-
-# Create a Docker secret for SMTP secure connection
-create_secret "mail_options_secure" $mail__options__secure
 
 
 sleep 2
@@ -271,11 +211,13 @@ clear
 
 # Prompt for SMTP port
 prompt_and_confirm "SMTP Port" "mail_options_port"
-create_secret "mail_options_port" $result
 
 sleep 2
 clear
-
+# Check if netstat is installed
+echo "----------------------------------------------------"
+echo "Checking for netstat...."
+sleep 2
 # Check if netstat is installed
 if ! command -v netstat &> /dev/null
 then
@@ -285,62 +227,113 @@ then
     # Install net-tools
     sudo apt-get install -y net-tools
 fi
-sleep 3 &
-PID=$!
-i=1
-sp="/-\|"
-echo -n 'Checking if Port 2368 is open. '
-while [ -d /proc/$PID ]
-do
-  printf "\b${sp:i++%${#sp}:1}"
-done
-# Check if port 2368 is open
-PORT=2368
-netstat_output=$(netstat -tuln | grep $PORT)
-if [[ -z $netstat_output ]]; then
-    echo "Port $PORT is open."
-else
-    echo "Error: Port $PORT is not open. Please check your Docker configuration."
-    exit 1
-fi
+echo "Done! Continuing on..."
+echo "----------------------------------------------------"
+sleep 3 
+clear
+# Function to prompt for port number and check if it's open
+prompt_for_port() {
+    while true; do
+        echo "Please enter a port number for Ghost:"
+        read PORT
+
+        netstat_output=$(netstat -tuln | grep $PORT)
+        if [[ -z $netstat_output ]]; then
+            echo "Port $PORT is open."
+            break
+        else
+            echo "Error: Port $PORT is not open. Please try another port."
+        fi
+    done
+}
+
+echo "----------------------------------------------------"
+echo "Preparing Ghost options..."
 sleep 2
+
+prompt_for_port
+
+
+echo "Done! Continuing on..."
+echo "----------------------------------------------------"
+sleep 3 
 clear
 
+echo "----------------------------------------------------"
+echo "Checking if containers and volumes already exist..."
+sleep 2
+
+# Check if 'ghost' container already exists
+ghost_container=$(docker ps -a --filter "name=ghost" --format '{{.Names}}')
+if [[ $ghost_container == *"ghost"* ]]; then
+    echo "The 'ghost' container already exists."
+    read -p "Would you like to stop and remove it? (y/n): " confirm
+    if [[ "$confirm" == "y" ]]; then
+        docker stop ghost
+        docker rm ghost
+    else
+        echo "Cannot proceed with the 'ghost' container already existing. Exiting."
+        exit 1
+    fi
+fi
+
+# Check if 'ghost_ghost_content' volume already exists
+ghost_volume=$(docker volume ls --filter "name=ghost_ghost_content" --format '{{.Name}}')
+if [[ $ghost_volume == *"ghost_ghost_content"* ]]; then
+    echo "The 'ghost_ghost_content' volume already exists."
+    read -p "Would you like to remove it? (y/n): " confirm
+    if [[ "$confirm" == "y" ]]; then
+        docker volume rm ghost_ghost_content
+    else
+        echo "Cannot proceed with the 'ghost_ghost_content' volume already existing. Exiting."
+        exit 1
+    fi
+fi
+
+echo "Done! Continuing on..."
+echo "----------------------------------------------------"
+sleep 3 
+clear
+
+
+echo "----------------------------------------------------"
+echo "Attempting to compose Docker..."
+sleep 2
 # Deploy Docker stack
-docker stack deploy -c docker-compose.yml ghost_stack
+docker-compose up -d --name ghost
 
 # Wait for a few seconds to let the stack start
-echo "Waiting for the stack to start..."
+echo "Waiting for the container to start..."
 sleep 5
 
 # Check if the stack has deployed
-stack_services=$(docker stack services ghost_stack)
+stack_services=$(docker ps --filter "name=ghost")
 
-if [[ $stack_services == *"ghost_stack_ghost"* ]]; then
+if [[ $stack_services == *"ghost"* ]]; then
     echo "Stack has deployed successfully!"
 else
     echo "Something went wrong. The stack did not deploy."
     echo "Please check the Docker logs for more information."
-    echo "Use the command: docker service logs ghost_stack"
+    echo "Use the command: docker logs ghost"
     exit 1
 fi
 
 # Check if containers are running
-service_state=$(docker service ps --format '{{.CurrentState}}' ghost_stack_ghost)
+service_state=$(docker ps --filter "name=ghost" --format '{{.State}}')
 
-if [[ $service_state == *"Running"* ]]; then
+if [[ $service_state == *"Up"* ]]; then
     echo "Containers are running successfully!"
 else
     echo "Something went wrong. The service is not running."
     echo "Service state: $service_state"
     echo "Please check the Docker logs for more information."
-    echo "Use the command: docker service logs ghost_stack_ghost"
+    echo "Use the command: docker logs ghost"
 fi
 
 # Provide next steps
 echo "Your Ghost blog is now running in Docker!"
 echo "You can access it at the URL you provided during setup."
 echo "To manage your Docker stack, use the following commands:"
-echo "- To view the services in your stack, use: docker stack services ghost_stack"
-echo "- To view the tasks in your stack, use: docker stack ps ghost_stack"
-echo "- To remove your stack, use: docker stack rm ghost_stack"
+echo "- To view the services in your stack, use: docker ps --filter \"name=ghost\""
+echo "- To view the logs of your stack, use: docker logs ghost"
+echo "- To remove your stack, use: docker rm -f ghost; docker volume rm ghost_ghost_content"
