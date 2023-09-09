@@ -1,0 +1,19 @@
+## DO NOT EDIT ANYTHING IN THESE FILES
+version: '3.1'
+services:
+  ghost:
+    image: ghost:
+    env_file:
+      - .env
+    volumes:
+      - ghost_content:/var/lib/ghost/content
+  mysql:
+    image: mysql:8.0
+    env_file:
+      - .env
+    volumes:
+        - mysql_data:/var/lib/mysql
+volumes:
+  ghost_content:
+  mysql_data:
+

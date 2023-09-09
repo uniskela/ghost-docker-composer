@@ -20,7 +20,8 @@ This project was made to allow myself to migrate and create production Ghost doc
 - This script is optimised for **_Ubuntu 22.04 LTS_**
 - [Docker](https://docs.docker.com/engine/install/ubuntu/#installation-methods) and [Docker Compose](https://docs.docker.com/compose/install/linux/#install-using-the-repository) installed on your machine.
 - Shell access to the machine where Docker is running.
-- [net-tools](https://packages.ubuntu.com/jammy/net-tools) (or the script will try to install via sudo apt)
+- [direnv](https://github.com/direnv/direnv) (the script offers install via sudo apt-get)
+- [net-tools](https://packages.ubuntu.com/jammy/net-tools) (the script offers install via sudo apt-get)
 - External MySQL Database is optional, or run an Internal MySQL database in stack
 
 ## Getting Started
@@ -55,10 +56,11 @@ This project is licensed under the MIT License - see the LICENSE.md file for det
 
 ## Acknowledgements
 
-- Thanks to the Ghost team for creating a great blogging platform.
-- Thanks to the MySQL for their years of stability and security.
-- Thanks to the Docker team for creating an amazing containerization platform.
+- Thanks to the [Ghost](https://github.com/tryghost) team for creating a great blogging platform.
+- Thanks to the [MySQL](https://github.com/mysql) for their years of stability and security.
+- Thanks to the [Docker](https://github.com/docker) team for creating an amazing containerization platform.
+- Thanks to [@zimbatm](https://github.com/zimbatm) for the lightweight [direnv](https://github.com/direnv/direnv) package.
 
 ## Disclaimer
 
-This project is not affiliated with, sponsored by, or endorsed by Ghost or Docker. Use at your own risk. Always make sure to backup your data.
+This project is not affiliated with, sponsored by, or endorsed by Ghost, Docker or any brands excluding [Uniskela](https://uniskela.space). Use at your own risk. Always make sure to backup your data.

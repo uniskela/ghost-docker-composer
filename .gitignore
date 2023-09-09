@@ -1,0 +1,4 @@
+*.env
+prod/
+docker*
+docker-compose.yml
