@@ -2,3 +2,4 @@
 prod/
 docker*
 docker-compose.yml
+*.gitignore
