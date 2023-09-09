@@ -10,9 +10,9 @@ reset=$(tput sgr0)
 # Welcome message
 echo "----------------------------------------------------"
 echo "${bold}Welcome to the Ghost blog Docker composer!${reset}"
-echo "${underline}Built by Uniskela: https://github.com/uniskela/ghost-docker-composer${reset}"
+echo "${underline}https://github.com/uniskela/ghost-docker-composer${reset}"
 echo ""
-echo "${error}Please note: This project is currently in development. Expect errors.${reset}"
+echo "${warn}Please note: This project is currently in development.${reset}"
 echo "----------------------------------------------------"
 sleep 5
 
@@ -107,7 +107,7 @@ then
 
     # Copy the template to create a new docker-compose.yml file
     echo "Creating a new docker-compose.yml file from template..."
-    cp ./template.yml ./docker-compose.yml
+    cp ./template ./docker-compose.yml
     sleep 1
 
     # Create a new prod/.envrc file
@@ -118,6 +118,7 @@ then
     echo "${info}Done! Your docker-compose.yml and prod/.envrc files have been refreshed.${reset}"
 else
     echo "${error}Operation cancelled. Your docker-compose.yml and prod/.envrc files have not been changed.${reset}"
+    echo "If you would like to continue, please backup your directory."
     echo "----------------------------------------------------"
     exit 1
 fi
@@ -128,7 +129,7 @@ sleep 3
 
 
 # Function to prompt for user input and confirm
-prompt_and_confirm() {
+addenv() {
     local prompt_string=$1
     local env_var_name=$2
 
@@ -170,13 +171,22 @@ clear
 echo "----------------------------------------------------"
 echo "${warn}To ensure you enter the correct value, please" 
 echo "refer to: https://hub.docker.com/_/ghost/tags${reset}"
-prompt_and_confirm "Ghost Image Version" "GHOST_IMAGE_VERSION"
+addenv "Ghost Image Version" "GHOST_IMAGE_VERSION"
+
+# Allow direnv to load the .envrc file
+# shellcheck disable=SC2164
+cd prod
+direnv allow .
+# shellcheck disable=SC2103
+cd ..
+
+# Source the prod/.envrc file to load the GHOST_IMAGE_VERSION variable
+# shellcheck disable=SC1091
+source prod/.envrc
 
 # Replace the entire line 4 with the new image line
 sed -i "5c\    image: ghost:${GHOST_IMAGE_VERSION}" ./docker-compose.yml
 
-# Prompt for Ghost Website URL and create Docker secret
-prompt_and_confirm "Ghost Website URL" "database__connection__host"
 
 while true; do
     # Prompt for MySQL configuration type
@@ -189,24 +199,22 @@ while true; do
     read -r -p "Enter your choice (1 or 2): " choice
 
     if [[ "$choice" == "1" ]]; then
-        # Uncomment MySQL service and volume in docker-compose.yml using sed
-        sed -i '/#  mysql:/,/  mysql_data:/ { s/^#  // }' ./docker-compose.yml
-        sed -i '/#  mysql_data:/ { s/^#  // }' ./docker-compose.yml
+    # Uncomment MySQL service and volume in docker-compose.yml using sed
+    sed -i '/#  db:/,/#  db:/ s/^#  //' ./docker-compose.yml
+    # Correct the indentation for the db volume
+    sed -i '/db:/ { s/^/  / }' ./docker-compose.yml
 
-        # Add the necessary indentation back in
-        sed -i '/mysql:/,/mysql_data:/ { s/^/  / }' ./docker-compose.yml
 
-        # Correct the indentation for the mysql_data volume
-        sed -i '/mysql_data:/ { s/^/  / }' ./docker-compose.yml
 
         # Prompt for internal MySQL configuration
+        clear
         echo "----------------------------------------------------"
         echo "${underline}Internal MySQL Configuration${reset}"
         echo "----------------------------------------------------"
-        prompt_and_confirm "MySQL Root Password" "MYSQL_ROOT_PASSWORD"
-        prompt_and_confirm "MySQL Database" "MYSQL_DATABASE"
-        prompt_and_confirm "MySQL User" "MYSQL_USER"
-        prompt_and_confirm "MySQL Password" "MYSQL_PASSWORD"
+        addenv "MySQL Root Password" "MYSQL_ROOT_PASSWORD"
+        addenv "MySQL Database" "MYSQL_DATABASE"
+        addenv "MySQL User" "MYSQL_USER"
+        addenv "MySQL Password" "MYSQL_PASSWORD"
         # Add the DATABASE_CONNECTION_HOST and DATABASE_CONNECTION_PORT environment variables to prod/.envrc
         echo "----------------------------------------------------"
         echo "Including additional env variables for Ghost..."
@@ -215,19 +223,21 @@ while true; do
         break
     elif [[ "$choice" == "2" ]]; then
         # Prompt for external MySQL configuration
+        clear
         echo "----------------------------------------------------"
         echo "${underline}External MySQL Configuration${reset}"
         echo "----------------------------------------------------"
-        prompt_and_confirm "Database Connection Hostname" "DATABASE_CONNECTION_HOST"
-        prompt_and_confirm "Database Connection Username" "DATABASE_CONNECTION_USER"
-        prompt_and_confirm "Database Connection DB Name" "DATABASE_CONNECTION_DATABASE"
-        prompt_and_confirm "Database Connection Password" "DATABASE_CONNECTION_PASSWORD"
-        prompt_and_confirm "Database Connection Port" "DATABASE_CONNECTION_PORT"
+        addenv "Database Connection Hostname" "DATABASE_CONNECTION_HOST"
+        addenv "Database Connection Username" "DATABASE_CONNECTION_USER"
+        addenv "Database Connection DB Name" "DATABASE_CONNECTION_DATABASE"
+        addenv "Database Connection Password" "DATABASE_CONNECTION_PASSWORD"
+        addenv "Database Connection Port" "DATABASE_CONNECTION_PORT"
         break
     else
         echo "Invalid choice. Please enter 1 for Internal or 2 for External."
     fi
 done
+
 
     echo "----------------------------------------------------"
     echo "${info}Database Configuration Complete!${reset}"
@@ -241,9 +251,12 @@ echo "${underline}Email SMTP Configuration${reset}"
 echo "----------------------------------------------------"
 sleep 2
 # Prompt for SMTP configuration and create Docker secrets
-prompt_and_confirm "Email From Address" "mail_from"
+addenv "Email From Address" "mail_from"
 
-prompt_and_confirm "Email SMTP host" "mail_options_host"
+addenv "Email SMTP host" "mail_options_host"
+
+# Prompt for SMTP port
+addenv "SMTP Port" "mail_options_port"
 
 # Prompt for secure connection
 while true; do
@@ -257,9 +270,9 @@ done
 
 # If secure connection is used, prompt for SMTP user and password and create Docker secrets
 if [ "$mail__options__secure" == "y" ]; then
-    prompt_and_confirm "Email SMTP user" "mail_options_auth_user"
+    addenv "Email SMTP user" "mail_options_auth_user"
 
-    prompt_and_confirm "Email SMTP password" "mail_options_auth_pass"
+    addenv "Email SMTP password" "mail_options_auth_pass"
 fi
 
 
@@ -267,8 +280,7 @@ sleep 2
 
 clear
 
-# Prompt for SMTP port
-prompt_and_confirm "SMTP Port" "mail_options_port"
+
 
 echo "----------------------------------------------------"
 echo "${info}SMTP Configuration Complete!${reset}"
@@ -300,15 +312,19 @@ sleep 2
 
 prompt_for_port
 
+addenv "Admin URL" "admin_url"
 
-echo "Done! Continuing on..."
 echo "----------------------------------------------------"
-sleep 3 
+echo "${info}Ghost Configuration Complete!${reset}"
+echo "----------------------------------------------------"
+sleep 2
 clear
 
 echo "----------------------------------------------------"
 echo "Checking if containers and volumes already exist..."
 sleep 2
+
+
 
 # Check if 'ghost' container already exists
 ghost_container=$(docker ps -a --filter "name=ghost" --format '{{.Names}}')
@@ -347,6 +363,7 @@ echo "----------------------------------------------------"
 echo "Loding direnv variables..."
 sleep 2
 
+# shellcheck disable=2164
 cd prod
 direnv allow
 
@@ -355,7 +372,7 @@ sleep 2
 
 
 # Deploy Docker stack
-docker compose --env-file .envrc up -d --name ghost
+docker compose up -d ghost
 
 # Wait for a few seconds to let the stack start
 echo "Waiting for the container to start..."
