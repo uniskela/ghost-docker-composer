@@ -7,13 +7,13 @@ services:
       - .env
     volumes:
       - ghost_content:/var/lib/ghost/content
-  mysql:
-    image: mysql:8.0
-    env_file:
-      - .env
-    volumes:
-        - mysql_data:/var/lib/mysql
+#  mysql:
+#    image: mysql:8.0
+#    env_file:
+#      - .env
+#    volumes:
+#      - mysql_data:/var/lib/mysql
 volumes:
   ghost_content:
-  mysql_data:
+#  mysql_data:
 
