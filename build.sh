@@ -199,12 +199,13 @@ while true; do
     read -r -p "Enter your choice (1 or 2): " choice
 
     if [[ "$choice" == "1" ]]; then
-    # Uncomment MySQL service and volume in docker-compose.yml using sed
+    # Uncomment MySQL service in docker-compose.yml using sed
     sed -i '/#  db:/,/#  db:/ s/^#  //' ./docker-compose.yml
     # Correct the indentation for the db volume
     sed -i '/db:/ { s/^/  / }' ./docker-compose.yml
 
-
+    # Add data volume to the volumes section in docker-compose.yml
+    sed -i '/ghost_content:/a \  data:' ./docker-compose.yml
 
         # Prompt for internal MySQL configuration
         clear
@@ -218,8 +219,30 @@ while true; do
         # Add the DATABASE_CONNECTION_HOST and DATABASE_CONNECTION_PORT environment variables to prod/.envrc
         echo "----------------------------------------------------"
         echo "Including additional env variables for Ghost..."
-        echo "export DATABASE_CONNECTION_HOST=mysql" >> prod/.envrc
-        echo "export DATABASE_CONNECTION_PORT=3306" >> prod/.envrc
+
+        # Allow direnv to load the .envrc file
+        # shellcheck disable=SC2164
+        cd prod
+        direnv allow .
+        # shellcheck disable=SC2103
+        cd ..
+
+        # shellcheck disable=SC1091
+        source prod/.envrc
+
+
+        {
+            echo "export DATABASE_CONNECTION_HOST=db"
+            echo "export DATABASE_CONNECTION_USER=$MYSQL_USER"
+            echo "export DATABASE_CONNECTION_DATABASE=$MYSQL_DATABASE"
+            echo "export DATABASE_CONNECTION_PASSWORD=$MYSQL_PASSWORD"
+            echo "export DATABASE_CONNECTION_PORT=3306"
+        } >> prod/.envrc
+
+        # shellcheck disable=SC1091
+        source prod/.envrc  
+
+
         break
     elif [[ "$choice" == "2" ]]; then
         # Prompt for external MySQL configuration
@@ -363,9 +386,12 @@ echo "----------------------------------------------------"
 echo "Loding direnv variables..."
 sleep 2
 
-# shellcheck disable=2164
+# Allow direnv to load the .envrc file
+# shellcheck disable=SC2164
 cd prod
-direnv allow
+direnv allow .
+# shellcheck disable=SC2103
+cd ..
 
 echo "Attempting to compose Docker..."
 sleep 2

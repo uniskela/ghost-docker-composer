@@ -15,5 +15,4 @@ services:
 #      - mysql_data:/var/lib/mysql
 volumes:
   ghost_content:
-#   db:
 
